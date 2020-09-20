@@ -4,9 +4,8 @@
 """
 import numpy as np
 from skimage.morphology import skeletonize_3d
-from scipy.ndimage import center_of_mass
+from scipy.ndimage import center_of_mass, measurements
 from scipy.ndimage.morphology import distance_transform_edt
-from .data_segmentation import seg_to_instance_bd, fix_dup_ind, one_hot
 
 
 def flux_center(volume):
@@ -68,4 +67,59 @@ def flux_z(volume):
         temp = (volume == i) * (z - center)
         out += 1 * (temp < 0) + 2 * (temp > 0)
     out = one_hot(out, 3)
+    return out
+
+
+def seg_to_instance_bd(seg, tsz_h=7, do_bg=False):
+    tsz = tsz_h * 2 + 1
+    mm = seg.max()
+    sz = seg.shape
+    bd = np.zeros(sz, np.uint8)
+    for z in range(sz[0]):
+        patch = im2col(np.pad(seg[z], ((tsz_h, tsz_h), (tsz_h, tsz_h)), 'reflect'), [tsz, tsz])
+        p0 = patch.max(axis=1)
+        if do_bg:  # at least one non-zero seg
+            p1 = patch.min(axis=1)
+            bd[z] = ((p0 > 0) * (p0 != p1)).reshape(sz[1:])
+        else:  # between two non-zero seg
+            patch[patch == 0] = mm + 1
+            p1 = patch.min(axis=1)
+            bd[z] = ((p0 != 0) * (p1 != 0) * (p0 != p1)).reshape(sz[1:])
+    return bd
+
+
+def im2col(A, BSZ, stepsize=1):
+    # Parameters
+    M, N = A.shape
+    # Get Starting block indices
+    start_idx = np.arange(0, M - BSZ[0] + 1, stepsize)[:, None] * N + np.arange(0, N - BSZ[1] + 1, stepsize)
+    # Get offsetted indices across the height and width of input array
+    offset_idx = np.arange(BSZ[0])[:, None] * N + np.arange(BSZ[1])
+    # Get all actual indices & index into input array for final output
+    return np.take(A, start_idx.ravel()[:, None] + offset_idx.ravel())
+
+
+def fix_dup_ind(ann):
+    """
+    deal with duplicated instance
+    """
+    current_max_id = np.amax(ann)
+    inst_list = list(np.unique(ann))
+    inst_list.remove(0)  # 0 is background
+    for inst_id in inst_list:
+        inst_map = np.array(ann == inst_id, np.uint8)
+        remapped_ids = measurements.label(inst_map)[0]
+        remapped_ids[remapped_ids > 1] += current_max_id
+        ann[remapped_ids > 1] = remapped_ids[remapped_ids > 1]
+        current_max_id = np.amax(ann)
+    return ann
+
+
+def one_hot(a, bins: int):
+    a = a.reshape(-1, 1).squeeze()
+    out = np.zeros((a.size, bins), dtype=a.dtype)
+    out[np.arange(a.size), a] = 1
+    out = out.reshape(list(out.shape) + [bins])
+    out = np.transpose(out, (3, 0, 1, 2))
+    # CDHW
     return out

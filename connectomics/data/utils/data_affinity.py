@@ -1,5 +1,5 @@
 import numpy as np
-from .data_segmentation import fix_dup_ind
+from scipy.ndimage import measurements
 # from Janelia pyGreentea
 # https://github.com/naibaf7/PyGreentea
 def mknhood2d(radius=1):
@@ -104,3 +104,28 @@ def seg_to_aff(seg, nhood=mknhood3d(1), pad='replicate'):
 def z_aff(seg):
     seg=fix_dup_ind(seg)
     return seg_to_aff(seg)[0]
+
+def fix_dup_ind(ann):
+    """
+    deal with duplicated instance
+    """
+    current_max_id = np.amax(ann)
+    inst_list = list(np.unique(ann))
+    inst_list.remove(0) # 0 is background
+    for inst_id in inst_list:
+        inst_map = np.array(ann == inst_id, np.uint8)
+        remapped_ids = measurements.label(inst_map)[0]
+        remapped_ids[remapped_ids > 1] += current_max_id
+        ann[remapped_ids > 1] = remapped_ids[remapped_ids > 1]
+        current_max_id = np.amax(ann)
+    return ann
+
+
+def one_hot(a, bins: int):
+    a = a.reshape(-1, 1).squeeze()
+    out = np.zeros((a.size, bins), dtype=a.dtype)
+    out[np.arange(a.size), a] = 1
+    out = out.reshape(list(out.shape) + [bins])
+    out = np.transpose(out, (3, 0, 1, 2))
+    # CDHW
+    return out
