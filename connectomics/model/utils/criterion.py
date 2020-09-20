@@ -4,6 +4,8 @@ import torch.nn as nn
 
 from ..loss import *
 
+act={'0': torch.sigmoid,'1':torch.sigmoid,'2':torch.sigmoid,'3':torch.sigmoid,'4':torch.sigmoid,
+     '5':torch.sigmoid,'6':torch.sigmoid,'7':torch.sigmoid,'8':torch.sigmoid, '9':torch.tanh}
 class Criterion(object):
     def __init__(self, device=0, target_opt=['1'], loss_opt=[['WeightedBCE']], loss_weight=[[1.]], regu_opt=[], regu_weight=[]):
         self.device = device
@@ -59,11 +61,14 @@ class Criterion(object):
             # for each target
             numC = target[i].shape[1]
             target_t = self.to_torch(target[i])
+            #  add activation function
+            p = pred[:,cid:cid+numC]
+            p = act[self.target_opt[i][0]](p)
             for j in range(len(self.loss[i])):
                 if weight[i][j].shape[-1] == 1: # placeholder for no weight
-                    loss += self.loss_weight[i][j]*self.loss_w[i][j]*self.loss[i][j](pred[:,cid:cid+numC], target_t)
+                    loss += self.loss_weight[i][j]*self.loss_w[i][j]*self.loss[i][j](p, target_t)
                 else:
-                    loss += self.loss_weight[i][j]*self.loss_w[i][j]*self.loss[i][j](pred[:,cid:cid+numC], target_t, self.to_torch(weight[i][j]))
+                    loss += self.loss_weight[i][j]*self.loss_w[i][j]*self.loss[i][j](p, target_t, self.to_torch(weight[i][j]))
             cid += numC
         for i in range(self.num_regu):
             loss += self.regu[i](pred)*self.regu_w[i]

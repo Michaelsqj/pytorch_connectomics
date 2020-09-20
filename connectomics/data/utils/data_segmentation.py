@@ -4,8 +4,11 @@ from scipy.ndimage.morphology import binary_erosion, binary_dilation
 from skimage.morphology import erosion, dilation
 from skimage.measure import label as label_cc # avoid namespace conflict
 from skimage.segmentation import find_boundaries
+from scipy.ndimage import measurements
 
-from .data_affinity import mknhood2d, seg_to_aff
+from .data_affinity import mknhood2d, seg_to_aff, z_aff
+from .data_dt import dt_2d
+from .data_flux import flux_border_2d, flux_z
 
 # reduce the labeling
 def getSegType(mid):
@@ -36,11 +39,11 @@ def relabel(seg, do_type=False):
     mapping[uid] = np.arange(1, len(uid) + 1, dtype=m_type)
     return mapping[seg]
 
-def remove_small(seg, thres=100):                                                                    
-    sz = seg.shape                                                                                   
-    seg = seg.reshape(-1)                                                                            
-    uid, uc = np.unique(seg, return_counts=True)                                                     
-    seg[np.in1d(seg,uid[uc<thres])] = 0                                                              
+def remove_small(seg, thres=100):
+    sz = seg.shape
+    seg = seg.reshape(-1)
+    uid, uc = np.unique(seg, return_counts=True)
+    seg[np.in1d(seg,uid[uc<thres])] = 0
     return seg.reshape(sz)
 
 def im2col(A, BSZ, stepsize=1):
@@ -150,10 +153,12 @@ def seg_to_weight(target, wopts, mask=None):
     for wid, wopt in enumerate(wopts):
         # 0: no weight
         out[wid] = foo
-        if wopt == '1': # 1: by gt-target ratio 
+        if wopt == '1': # 1: by gt-target ratio
             out[wid] = weight_binary_ratio(target, mask)
         elif wopt == '2': # 2: unet weight
             out[wid] = weight_unet3d(target)
+        elif wopt == '3':  # 3: foreground mask
+            out[wid] = (mask > 0).astype(np.float32)
     return out
 
 def seg_to_targets(label, topts):
@@ -167,18 +172,18 @@ def seg_to_targets(label, topts):
             out[tid] = label[None,:].astype(np.float32)
         elif topt == '0': # binary
             out[tid] = (label>0)[None,:].astype(np.float32)
-        elif topt[0] == '1': 
+        elif topt[0] == '1':
             # synaptic polarity (multi-channel):
-            tmp = [None]*3 
+            tmp = [None]*3
             tmp[0] = np.logical_and((label % 2) == 1, label > 0)
             tmp[1] = np.logical_and((label % 2) == 0, label > 0)
             tmp[2] = (label > 0)
             # concatenate at channel
             out[tid] = np.stack(tmp, 0).astype(np.float32)
         elif topt[0] == '2': # affinity
-            if label.ndim == 3: # 3d aff 
+            if label.ndim == 3: # 3d aff
                 out[tid] = seg_to_aff(label)
-            elif label.ndim == 2: # 2d aff 
+            elif label.ndim == 2: # 2d aff
                 out[tid] = seg_to_aff(label, nhood=mknhood2d(1))
             else:
                 raise ValueError('Undefined affinity computation for ndim = ' + str(label.ndim))
@@ -191,6 +196,17 @@ def seg_to_targets(label, topts):
         elif topt[0] == '4': # instance boundary mask
             _, bd_sz,do_bg = [int(x) for x in topt.split('-')]
             out[tid] = seg_to_instance_bd(label, bd_sz, do_bg)[None,:].astype(np.float32)
+        elif topt[0] == '5':  # 2d DT  n bins
+            _, bins = [int(x) for x in topt.split('-')]
+            out[tid] = dt_2d(label, bins=bins)
+        elif topt[0] == '6':  # 2d flux to boundary 1:neighbor
+            out[tid] = flux_border_2d(label, opt=1)
+        elif topt[0] == '7':  # z-flux to center 0,1,2 classification
+            out[tid] = flux_z(label)
+        elif topt[0] == '8':  # z-aff 0,1 classification
+            out[tid] = z_aff(label)
+        elif topt[0] == '9':  # 2d flux to boundary 0: 2 channel direction unit vector
+            out[tid] = flux_border_2d(label, opt=0)
     return out
 
 def weight_binary_ratio(label, mask=None, alpha=1.0, return_factor=False):
@@ -215,7 +231,7 @@ def weight_binary_ratio(label, mask=None, alpha=1.0, return_factor=False):
         if mask is not None:
             weight = weight*mask
 
-    if return_factor: 
+    if return_factor:
         return weight_factor, weight
     else:
         return weight
@@ -242,10 +258,10 @@ def weight_unet2d(seg, w0=10, sigma=5):
     array-like
         A 2D array of shape (image_height, image_width)
     
-    """    
+    """
     seg_ids = np.unique(seg)
     seg_ids = seg_ids[seg_ids>0]
-    nrows, ncols = seg.shape    
+    nrows, ncols = seg.shape
     distMap = np.ones((nrows * ncols, 2))*(nrows+ncols)
     X1, Y1 = np.meshgrid(range(ncols), range(nrows))
     X1, Y1 = X1.reshape(1,-1), Y1.reshape(1,-1)
@@ -262,9 +278,9 @@ def weight_unet2d(seg, w0=10, sigma=5):
         distMap[m2,1] = dist[m2]
     if len(seg_ids) == 1:
         loss_map = w0 * np.exp((-1 * distMap[:,0] ** 2) / (2 * (sigma ** 2)))
-    else:        
+    else:
         loss_map = w0 * np.exp((-1 * distMap.sum(axis=1) ** 2) / (2 * (sigma ** 2)))
-    
+
     loss_map = loss_map.reshape((nrows,ncols))
     # add class weight map    
     wc_1 = (seg==0).mean()
@@ -273,4 +289,27 @@ def weight_unet2d(seg, w0=10, sigma=5):
     loss_map[seg==0] += wc_0
     return loss_map
 
+def fix_dup_ind(ann):
+    """
+    deal with duplicated instance
+    """
+    current_max_id = np.amax(ann)
+    inst_list = list(np.unique(ann))
+    inst_list.remove(0) # 0 is background
+    for inst_id in inst_list:
+        inst_map = np.array(ann == inst_id, np.uint8)
+        remapped_ids = measurements.label(inst_map)[0]
+        remapped_ids[remapped_ids > 1] += current_max_id
+        ann[remapped_ids > 1] = remapped_ids[remapped_ids > 1]
+        current_max_id = np.amax(ann)
+    return ann
 
+
+def one_hot(a, bins: int):
+    a = a.reshape(-1, 1).squeeze()
+    out = np.zeros((a.size, bins), dtype=a.dtype)
+    out[np.arange(a.size), a] = 1
+    out = out.reshape(list(out.shape) + [bins])
+    out = np.transpose(out, (3, 0, 1, 2))
+    # CDHW
+    return out

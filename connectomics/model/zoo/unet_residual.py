@@ -124,5 +124,4 @@ class unet_residual_3d(nn.Module):
         else:
             x = self.upS[0](x)
 
-        x = torch.sigmoid(x)
         return x

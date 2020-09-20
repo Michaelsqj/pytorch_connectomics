@@ -187,8 +187,8 @@ class Trainer(object):
         for vol_id in range(len(result)):
             if result[vol_id].ndim > weight[vol_id].ndim:
                 weight[vol_id] = np.expand_dims(weight[vol_id], axis=0)
-            # For segmentation masks, use uint16
-            result[vol_id] = (result[vol_id]/weight[vol_id]*255).astype(np.uint8)
+            # use original output, for post process
+            result[vol_id] = result[vol_id]/weight[vol_id]
             sz = result[vol_id].shape
             result[vol_id] = result[vol_id][:,
                         pad_size[0]:sz[1]-pad_size[1],

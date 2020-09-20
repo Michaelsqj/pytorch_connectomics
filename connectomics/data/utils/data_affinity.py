@@ -1,5 +1,5 @@
 import numpy as np
-
+from .data_segmentation import fix_dup_ind
 # from Janelia pyGreentea
 # https://github.com/naibaf7/PyGreentea
 def mknhood2d(radius=1):
@@ -100,3 +100,7 @@ def seg_to_aff(seg, nhood=mknhood3d(1), pad='replicate'):
         aff[1,:,0] = (seg[:,0]>0).astype(aff.dtype)
 
     return aff
+
+def z_aff(seg):
+    seg=fix_dup_ind(seg)
+    return seg_to_aff(seg)[0]
