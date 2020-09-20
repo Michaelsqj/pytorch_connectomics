@@ -1,7 +1,7 @@
 import os, sys
 import argparse
 import torch
-
+sys.path.append('/n/home00/qshen/new_code/pytorch_connectomics/')
 from connectomics.config import get_cfg_defaults, save_all_cfg, update_inference_cfg
 from connectomics.engine import Trainer
 import torch.backends.cudnn as cudnn
