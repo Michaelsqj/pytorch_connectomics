@@ -28,6 +28,7 @@ def dt_2d(volume, bins):
                 continue
             out[d, ...] += distance_transform_edt((s == i))
     out = out.astype(np.uint8)
+    out[out>=bins]=bins-1
     out = one_hot(out, bins)
     return out
 
