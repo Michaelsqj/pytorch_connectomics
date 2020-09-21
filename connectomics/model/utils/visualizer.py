@@ -14,6 +14,11 @@ class Visualizer(object):
             '2': 3,  
             '3': 1,
             '4': 1,
+            '5': 10,
+            '6': 9,
+            '7': 3,
+            '8': 1,
+            '9': 2
         }
         if do_2d:
             self.num_channels_dict['2'] = 2
