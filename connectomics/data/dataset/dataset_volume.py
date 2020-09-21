@@ -142,7 +142,7 @@ class VolumeDataset(torch.utils.data.Dataset):
                     out_volume, out_label = augmented['image'], augmented['label']
                 else: # the data is already augmented in the rejection sampling step
                     pass
-                
+
             if self.do_2d:
                 out_volume = np.squeeze(out_volume) 
                 out_label = np.squeeze(out_label)
@@ -270,5 +270,5 @@ class VolumeDataset(torch.utils.data.Dataset):
         # else:
         #     out_mask = torch.ones((1),dtype=torch.uint8)
 
-        out_label = relabel(out_label.copy()).astype(np.float32)
+        out_label = relabel(out_label.copy())
         return pos, out_volume, out_label

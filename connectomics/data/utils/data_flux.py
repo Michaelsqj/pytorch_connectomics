@@ -57,6 +57,7 @@ def flux_border_2d(volume, opt=0):
 def flux_z(volume):
     # 0,1,2
     # 0: background, 1: below center 2: above center
+    volume=volume.astype(np.uint16)
     volume = fix_dup_ind(volume)
     out = np.zeros(volume.shape, dtype=np.uint8)
     z, _, _ = np.meshgrid(range(volume.shape[0]), range(volume.shape[1]), range(volume.shape[2]), indexing='ij')
@@ -116,10 +117,11 @@ def fix_dup_ind(ann):
 
 
 def one_hot(a, bins: int):
+    shape=a.shape
     a = a.reshape(-1, 1).squeeze()
     out = np.zeros((a.size, bins), dtype=a.dtype)
     out[np.arange(a.size), a] = 1
-    out = out.reshape(list(out.shape) + [bins])
+    out = out.reshape(list(shape) + [bins])
     out = np.transpose(out, (3, 0, 1, 2))
     # CDHW
     return out

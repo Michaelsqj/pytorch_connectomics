@@ -102,7 +102,8 @@ def seg_to_aff(seg, nhood=mknhood3d(1), pad='replicate'):
     return aff
 
 def z_aff(seg):
-    seg=fix_dup_ind(seg)
+    seg = seg.astype(np.uint16)
+    seg = fix_dup_ind(seg)
     return seg_to_aff(seg)[0]
 
 def fix_dup_ind(ann):
@@ -122,10 +123,11 @@ def fix_dup_ind(ann):
 
 
 def one_hot(a, bins: int):
+    shape=a.shape
     a = a.reshape(-1, 1).squeeze()
     out = np.zeros((a.size, bins), dtype=a.dtype)
     out[np.arange(a.size), a] = 1
-    out = out.reshape(list(out.shape) + [bins])
+    out = out.reshape(list(shape) + [bins])
     out = np.transpose(out, (3, 0, 1, 2))
     # CDHW
     return out

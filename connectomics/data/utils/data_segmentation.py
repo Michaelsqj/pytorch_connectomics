@@ -198,15 +198,15 @@ def seg_to_targets(label, topts):
             out[tid] = seg_to_instance_bd(label, bd_sz, do_bg)[None,:].astype(np.float32)
         elif topt[0] == '5':  # 2d DT  n bins
             _, bins = [int(x) for x in topt.split('-')]
-            out[tid] = dt_2d(label, bins=bins)
+            out[tid] = dt_2d(label, bins=bins).astype(np.float32)
         elif topt[0] == '6':  # 2d flux to boundary 1:neighbor
-            out[tid] = flux_border_2d(label, opt=1)
+            out[tid] = flux_border_2d(label, opt=1).astype(np.float32)
         elif topt[0] == '7':  # z-flux to center 0,1,2 classification
-            out[tid] = flux_z(label)
+            out[tid] = flux_z(label).astype(np.float32)
         elif topt[0] == '8':  # z-aff 0,1 classification
-            out[tid] = z_aff(label)
+            out[tid] = z_aff(label)[None,:].astype(np.float32)
         elif topt[0] == '9':  # 2d flux to boundary 0: 2 channel direction unit vector
-            out[tid] = flux_border_2d(label, opt=0)
+            out[tid] = flux_border_2d(label, opt=0).astype(np.float32)
     return out
 
 def weight_binary_ratio(label, mask=None, alpha=1.0, return_factor=False):
@@ -288,28 +288,3 @@ def weight_unet2d(seg, w0=10, sigma=5):
     loss_map[seg>0] += wc_1
     loss_map[seg==0] += wc_0
     return loss_map
-
-def fix_dup_ind(ann):
-    """
-    deal with duplicated instance
-    """
-    current_max_id = np.amax(ann)
-    inst_list = list(np.unique(ann))
-    inst_list.remove(0) # 0 is background
-    for inst_id in inst_list:
-        inst_map = np.array(ann == inst_id, np.uint8)
-        remapped_ids = measurements.label(inst_map)[0]
-        remapped_ids[remapped_ids > 1] += current_max_id
-        ann[remapped_ids > 1] = remapped_ids[remapped_ids > 1]
-        current_max_id = np.amax(ann)
-    return ann
-
-
-def one_hot(a, bins: int):
-    a = a.reshape(-1, 1).squeeze()
-    out = np.zeros((a.size, bins), dtype=a.dtype)
-    out[np.arange(a.size), a] = 1
-    out = out.reshape(list(out.shape) + [bins])
-    out = np.transpose(out, (3, 0, 1, 2))
-    # CDHW
-    return out
