@@ -41,8 +41,9 @@ def flux_border_2d(volume, opt=0):
             indices = indices * (volume[d, ...] == i)
             # indices 2xHxW
             inda, indb = indices[0], indices[1]
-            dega += (s == i) * (inda - a) / np.sqrt((inda - a) * (inda - a) + (indb - b) * (indb - b))
-            degb += (s == i) * (indb - b) / np.sqrt((inda - a) * (inda - a) + (indb - b) * (indb - b))
+            temp = (s == i) * np.sqrt((inda - a) * (inda - a) + (indb - b) * (indb - b))
+            dega += np.divide((inda - a), temp, out=np.zeros_like(inda), where=temp != 0)
+            degb += np.divide((indb - b), temp, out=np.zeros_like(indb), where=temp != 0)
     if opt == 0:
         return np.stack([dega, degb], axis=0)
     else:
@@ -57,7 +58,7 @@ def flux_border_2d(volume, opt=0):
 def flux_z(volume):
     # 0,1,2
     # 0: background, 1: below center 2: above center
-    volume=volume.astype(np.uint16)
+    volume = volume.astype(np.uint16)
     volume = fix_dup_ind(volume)
     out = np.zeros(volume.shape, dtype=np.uint8)
     z, _, _ = np.meshgrid(range(volume.shape[0]), range(volume.shape[1]), range(volume.shape[2]), indexing='ij')
@@ -117,7 +118,7 @@ def fix_dup_ind(ann):
 
 
 def one_hot(a, bins: int):
-    shape=a.shape
+    shape = a.shape
     a = a.reshape(-1, 1).squeeze()
     out = np.zeros((a.size, bins), dtype=a.dtype)
     out[np.arange(a.size), a] = 1
