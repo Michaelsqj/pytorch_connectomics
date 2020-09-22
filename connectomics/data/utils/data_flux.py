@@ -42,8 +42,10 @@ def flux_border_2d(volume, opt=0):
             # indices 2xHxW
             inda, indb = indices[0], indices[1]
             temp = (s == i) * np.sqrt((inda - a) * (inda - a) + (indb - b) * (indb - b))
-            dega += np.divide((inda - a), temp, out=np.zeros_like(inda), where=temp != 0)
-            degb += np.divide((indb - b), temp, out=np.zeros_like(indb), where=temp != 0)
+            dega += np.divide((inda - a).astype(np.float32), temp, out=np.zeros_like(inda, dtype=np.float32),
+                              where=temp != 0)
+            degb += np.divide((indb - b).astype(np.float32), temp, out=np.zeros_like(indb, dtype=np.float32),
+                              where=temp != 0)
     if opt == 0:
         return np.stack([dega, degb], axis=0)
     else:
@@ -67,7 +69,7 @@ def flux_z(volume):
             continue
         center = np.round(center_of_mass((volume == i)))[0]
         temp = (volume == i) * (z - center)
-        out += 1 * (temp < 0) + 2 * (temp > 0)
+        out += 1 * (temp < 0).astype(np.uint8) + 2 * (temp > 0).astype(np.uint8)
     out = one_hot(out, 3)
     return out
 
