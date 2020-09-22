@@ -154,7 +154,7 @@ def seg_to_weight(target, wopts, mask=None):
         # 0: no weight
         out[wid] = foo
         if wopt == '1': # 1: by gt-target ratio
-            out[wid] = weight_binary_ratio(target, mask)
+            out[wid] = weight_binary_ratio(target)
         elif wopt == '2': # 2: unet weight
             out[wid] = weight_unet3d(target)
         elif wopt == '3':  # 3: foreground mask
