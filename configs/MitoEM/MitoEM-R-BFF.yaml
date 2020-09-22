@@ -7,7 +7,7 @@ MODEL:
   INPUT_SIZE: [32, 256, 256]
   OUTPUT_SIZE: [32, 256, 256]
   IN_PLANES: 1
-  OUT_PLANES: 4
+  OUT_PLANES: 6
   LOSS_OPTION: [['WeightedBCE'],['WeightedMSE'],['WeightedBCE']]
   LOSS_WEIGHT: [[1.0],[1.0],[1.0]]
   TARGET_OPT: ['0','9','7']

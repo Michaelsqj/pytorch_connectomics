@@ -158,7 +158,7 @@ def seg_to_weight(target, wopts, mask=None):
         elif wopt == '2': # 2: unet weight
             out[wid] = weight_unet3d(target)
         elif wopt == '3':  # 3: foreground mask
-            out[wid] = (mask > 0).astype(np.float32)
+            out[wid] = (mask > 0)[None,:].astype(np.float32)
     return out
 
 def seg_to_targets(label, topts):
