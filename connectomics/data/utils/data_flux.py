@@ -26,26 +26,28 @@ def flux_border_2d(volume, opt=0):
     # angle or neighborhood
     # opt 0: angle, regression   opt 1: neighborhood, classification
     assert opt in [0, 1]
-    border = seg_to_instance_bd(volume, 2, True)
     D = volume.shape[0]
+    volume=volume.astype(np.uint16)
     # direction vector [-1,1]
     dega = np.zeros(volume.shape, dtype=float)
     degb = np.zeros(volume.shape, dtype=float)
     for d in range(D):
-        s = fix_dup_ind(volume[d, ...])
-        for i in np.unique(volume[d, ...]):
+        print(D)
+        s=fix_dup_ind(volume[d,...])
+        print(np.unique(s))
+        for i in np.unique(s):
             if i == 0:
                 continue
             a, b = np.meshgrid(range(volume.shape[1]), range(volume.shape[2]), indexing='ij')
             _, indices = distance_transform_edt(s == i, return_indices=True)
-            indices = indices * (volume[d, ...] == i)
             # indices 2xHxW
+            indices=indices*(s == i)
             inda, indb = indices[0], indices[1]
-            temp = (s == i) * np.sqrt((inda - a) * (inda - a) + (indb - b) * (indb - b))
-            dega += np.divide((inda - a).astype(np.float32), temp, out=np.zeros_like(inda, dtype=np.float32),
-                              where=temp != 0)
-            degb += np.divide((indb - b).astype(np.float32), temp, out=np.zeros_like(indb, dtype=np.float32),
-                              where=temp != 0)
+            temp=np.sqrt((inda - a) **2 + (indb - b) **2)
+            tempa=np.divide(inda-a, temp, where=temp>0, out=np.zeros_like(inda, dtype=float))
+            tempb=np.divide(indb-b, temp, where=temp>0, out=np.zeros_like(indb, dtype=float))
+            dega[d,...] += (s==i)*tempa
+            degb[d,...] += (s==i)*tempb
     if opt == 0:
         return np.stack([dega, degb], axis=0)
     else:
@@ -54,8 +56,7 @@ def flux_border_2d(volume, opt=0):
                            [-1, 0], [-0.707, -0.707], [0, -1], [0.707, -0.707]])
         m = np.stack([deg[0] * direct[i][0] for i in range(8)], axis=0)
         n = np.stack([deg[1] * direct[i][1] for i in range(8)], axis=0)
-        return one_hot((volume > 0) * (np.argmax(m + n, axis=0) + 1), 9)
-
+        return (volume > 0) * (np.argmax(m + n, axis=0) + 1)
 
 def flux_z(volume):
     # 0,1,2
