@@ -1,4 +1,4 @@
-# 2d distance to boundary + z-aff
+# 2d flux to boundary + z-aff
 SYSTEM:
   NUM_GPUS: 4
   NUM_CPUS: 4
@@ -7,19 +7,19 @@ MODEL:
   INPUT_SIZE: [32, 256, 256]
   OUTPUT_SIZE: [32, 256, 256]
   IN_PLANES: 1
-  OUT_PLANES: 11
-  LOSS_OPTION: [['WeightedBCE'],['WeightedBCE']]
+  OUT_PLANES: 3
+  LOSS_OPTION: [['WeightedMSE'],['WeightedBCE']]
   LOSS_WEIGHT: [[1.0],[1.0]]
-  TARGET_OPT: ['5-10','8']
-  WEIGHT_OPT: [['1'],['1']]
+  TARGET_OPT: ['9','8']
+  WEIGHT_OPT: [['3'],['1']]
 DATASET:
   IMAGE_NAME: 'im_train.json'
   LABEL_NAME: 'mito_train.json'
-  INPUT_PATH: '/n/home00/qshen/new_code/pytorch_connectomics/configs/'
-  OUTPUT_PATH: '/n/pfister_lab2/Lab/qijia/checkpoint/rat/DA/'
+  INPUT_PATH: '/n/pfister_lab2/Lab/vcg_connectomics/mitochondria/miccai2020/rat/'
+  OUTPUT_PATH: '/n/pfister_lab2/Lab/qijia/checkpoint/rat/FA/'
   PAD_SIZE: [16, 128, 128]
   DO_CHUNK_TITLE: 1
-  DATA_CHUNK_NUM: [2, 2, 2]
+  DATA_CHUNK_NUM: [8, 2, 2]
   DATA_CHUNK_ITER: 2500
   LABEL_EROSION: 1
 AUGMENTOR:

@@ -15,7 +15,7 @@ MODEL:
 DATASET:
   IMAGE_NAME: 'im_train.json'
   LABEL_NAME: 'mito_train.json'
-  INPUT_PATH: '/n/home00/qshen/new_code/pytorch_connectomics/configs/'
+  INPUT_PATH: '/n/pfister_lab2/Lab/vcg_connectomics/mitochondria/miccai2020/rat/'
   OUTPUT_PATH: '/n/pfister_lab2/Lab/qijia/checkpoint/rat/D/'
   PAD_SIZE: [16, 128, 128]
   DO_CHUNK_TITLE: 1

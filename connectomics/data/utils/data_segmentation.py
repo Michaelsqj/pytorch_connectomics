@@ -159,6 +159,8 @@ def seg_to_weight(target, wopts, mask=None):
             out[wid] = weight_unet3d(target)
         elif wopt == '3':  # 3: foreground mask
             out[wid] = (mask > 0)[None,:].astype(np.float32)
+        elif wopt == '4':  # 4: weightedbce with foreground mask
+            out[wid] = weight_binary_ratio(target, mask)
     return out
 
 def seg_to_targets(label, topts):
