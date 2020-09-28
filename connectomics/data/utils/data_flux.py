@@ -27,13 +27,13 @@ def flux_border_2d(volume, opt=0):
     # opt 0: angle, regression   opt 1: neighborhood, classification
     assert opt in [0, 1]
     D = volume.shape[0]
-    volume=volume.astype(np.uint16)
+    volume = volume.astype(np.uint16)
     # direction vector [-1,1]
     dega = np.zeros(volume.shape, dtype=float)
     degb = np.zeros(volume.shape, dtype=float)
     for d in range(D):
         print(D)
-        s=fix_dup_ind(volume[d,...])
+        s = fix_dup_ind(volume[d, ...])
         print(np.unique(s))
         for i in np.unique(s):
             if i == 0:
@@ -41,13 +41,13 @@ def flux_border_2d(volume, opt=0):
             a, b = np.meshgrid(range(volume.shape[1]), range(volume.shape[2]), indexing='ij')
             _, indices = distance_transform_edt(s == i, return_indices=True)
             # indices 2xHxW
-            indices=indices*(s == i)
+            indices = indices * (s == i)
             inda, indb = indices[0], indices[1]
-            temp=np.sqrt((inda - a) **2 + (indb - b) **2)
-            tempa=np.divide(inda-a, temp, where=temp>0, out=np.zeros_like(inda, dtype=float))
-            tempb=np.divide(indb-b, temp, where=temp>0, out=np.zeros_like(indb, dtype=float))
-            dega[d,...] += (s==i)*tempa
-            degb[d,...] += (s==i)*tempb
+            temp = np.sqrt((inda - a) ** 2 + (indb - b) ** 2)
+            tempa = np.divide(inda - a, temp, where=temp > 0, out=np.zeros_like(inda, dtype=float))
+            tempb = np.divide(indb - b, temp, where=temp > 0, out=np.zeros_like(indb, dtype=float))
+            dega[d, ...] += (s == i) * tempa
+            degb[d, ...] += (s == i) * tempb
     if opt == 0:
         return np.stack([dega, degb], axis=0)
     else:
@@ -56,7 +56,8 @@ def flux_border_2d(volume, opt=0):
                            [-1, 0], [-0.707, -0.707], [0, -1], [0.707, -0.707]])
         m = np.stack([deg[0] * direct[i][0] for i in range(8)], axis=0)
         n = np.stack([deg[1] * direct[i][1] for i in range(8)], axis=0)
-        return (volume > 0) * (np.argmax(m + n, axis=0) + 1)
+        out = (volume > 0) * (np.argmax(m + n, axis=0) + 1)
+        return one_hot(out, bins=9, leave_bg=True)
 
 def flux_z(volume):
     # 0,1,2
@@ -71,7 +72,7 @@ def flux_z(volume):
         center = np.round(center_of_mass((volume == i)))[0]
         temp = (volume == i) * (z - center)
         out += 1 * (temp < 0).astype(np.uint8) + 2 * (temp > 0).astype(np.uint8)
-    out = one_hot(out, 3)
+    out = one_hot(out, 3, leave_bg=True)
     return out
 
 
@@ -120,7 +121,7 @@ def fix_dup_ind(ann):
     return ann
 
 
-def one_hot(a, bins: int):
+def one_hot(a, bins: int, leave_bg=False):
     shape = a.shape
     a = a.reshape(-1, 1).squeeze()
     out = np.zeros((a.size, bins), dtype=a.dtype)
@@ -128,4 +129,7 @@ def one_hot(a, bins: int):
     out = out.reshape(list(shape) + [bins])
     out = np.transpose(out, (3, 0, 1, 2))
     # CDHW
+    # leave out the channel 0 background
+    if leave_bg:
+        out = out[1:]
     return out
