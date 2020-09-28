@@ -32,9 +32,7 @@ def flux_border_2d(volume, opt=0):
     dega = np.zeros(volume.shape, dtype=float)
     degb = np.zeros(volume.shape, dtype=float)
     for d in range(D):
-        print(D)
         s = fix_dup_ind(volume[d, ...])
-        print(np.unique(s))
         for i in np.unique(s):
             if i == 0:
                 continue
