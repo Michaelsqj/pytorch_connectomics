@@ -11,7 +11,7 @@ from .solver import *
 from connectomics.model import *
 from connectomics.data.augmentation import build_train_augmentor, TestAugmentor
 from connectomics.data.dataset import build_dataloader, get_dataset
-from connectomics.data.utils import build_blending_matrix, writeh5
+from connectomics.data.utils import build_blending_matrix, writeh5, act_squeeze
 
 class Trainer(object):
     r"""Trainer
@@ -195,12 +195,14 @@ class Trainer(object):
                         pad_size[2]:sz[2]-pad_size[3],
                         pad_size[4]:sz[3]-pad_size[5]]
 
+        result = act_squeeze(result, self.cfg.MODEL.TARGET_OPT)
         if self.output_dir is None:
             return result
         else:
             print('Saving as h5...')
             writeh5(os.path.join(self.output_dir, self.inference_output_name), result,
                     ['vol%d'%(x) for x in range(len(result))])
+            print('Result save time:', time.time()-end)
             print('Inference is done!')
 
     # -----------------------------------------------------------------------------

@@ -25,7 +25,7 @@ def readvol(filename, dataset=''):
 
 def savevol(filename, vol, dataset='main', format='h5'):
     if format == 'h5':
-        writeh5(filename, vol, dataset='main')         
+        writeh5(filename, vol, dataset='main')
     if format == 'png':
         currentDirectory = os.getcwd()
         img_save_path = os.path.join(currentDirectory, filename)
@@ -36,7 +36,7 @@ def savevol(filename, vol, dataset='main', format='h5'):
 
 def readim(filename, do_channel=False):
     # x,y,c
-    if not os.path.exists(filename): 
+    if not os.path.exists(filename):
         im = None
     else:# note: cv2 do "bgr" channel order
         im = imageio.imread(filename)
@@ -71,7 +71,36 @@ def writeh5(filename, dtarray, dataset='main'):
         ds[:] = dtarray
     fid.close()
 
-                                                                               
+def act_squeeze(vol, topt):
+    def tanh(vol):
+        return (np.exp(vol)-np.exp(-vol))/(np.exp(vol)+np.exp(-vol))
+    def sigmoid(vol):
+        return 1/(1+np.exp(-vol))
+    act = {'0': sigmoid, '1': sigmoid, '2': sigmoid, '3': sigmoid, '4': sigmoid,
+           '5': sigmoid, '6': sigmoid, '7': sigmoid, '8': sigmoid, '9': tanh}
+    sq=['5','7']
+    num_channels_dict = {
+        '0': 1,
+        '1': 3,
+        '2': 3,
+        '3': 1,
+        '4': 1,
+        '5': 10,
+        '6': 8,
+        '7': 2,
+        '8': 1,
+        '9': 2
+    }
+    result=[]
+    num_c=0
+    for t in topt:
+        v=act[t](vol[:,num_c:num_c+num_channels_dict[t]])
+        if t in sq:
+            v=np.squeeze(v,axis=1)
+            result.append(np.expand_dims(v, axis=1))
+        num_c+=num_channels_dict[t]
+    return np.concatenate(result, axis=1)
+
 ####################################################################
 ## tile to volume
 ####################################################################
@@ -109,9 +138,9 @@ def tileToVolume(tiles, coord, coord_m, tile_sz, dt=np.uint8, tile_st=[0,0], til
                     path = pattern
                 patch = readim(path, do_channel=True)
                 if patch is not None:
-                    if tile_ratio != 1: # im ->1, label->0 
+                    if tile_ratio != 1: # im ->1, label->0
                         patch = zoom(patch, [tile_ratio,tile_ratio,1], order=int(do_im))
-                
+
                     # last tile may not be of the same size
                     xp0 = column * tile_sz
                     xp1 = xp0 + patch.shape[1]
