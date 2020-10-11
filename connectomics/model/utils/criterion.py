@@ -4,8 +4,11 @@ import torch.nn as nn
 
 from ..loss import *
 
+def blank(vol):
+    return vol
+
 act={'0': torch.sigmoid,'1':torch.sigmoid,'2':torch.sigmoid,'3':torch.sigmoid,'4':torch.sigmoid,
-     '5':torch.sigmoid,'6':torch.sigmoid,'7':torch.sigmoid,'8':torch.sigmoid, '9':torch.tanh}
+     '5':torch.sigmoid,'6':blank,'7':torch.sigmoid,'8':torch.sigmoid, '9':torch.tanh}
 class Criterion(object):
     def __init__(self, device=0, target_opt=['1'], loss_opt=[['WeightedBCE']], loss_weight=[[1.]], regu_opt=[], regu_weight=[]):
         self.device = device
@@ -44,6 +47,8 @@ class Criterion(object):
                     out[i][j] = JaccardLoss()
                 elif lopt == 'DiceLoss':
                     out[i][j] = DiceLoss()
+                elif lopt=='AngularScale':
+                    out[i][j] = AngularAndScaleLoss()
                 else:
                     print('Unknown loss option {}'.format(lopt))
         return out

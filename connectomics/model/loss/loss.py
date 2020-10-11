@@ -135,6 +135,39 @@ class WeightedBCE(nn.Module):
         #_assert_no_grad(target)
         return F.binary_cross_entropy(pred, target, weight)
 
+class AngularAndScaleLoss(nn.Module):
+    def __init__(self, alpha=0.5, dim=1):
+        super().__init__()
+        self.w_mse = WeightedMSE()
+        self.alpha = alpha
+        self.cos = nn.CosineSimilarity(dim=dim, eps=1e-6)
+
+    def get_norm(self, input):
+        # input b, c, z, y, x
+        scale = torch.sqrt((input**2).sum(dim=1, keepdim=True))
+        return scale
+
+    def scale_loss(self, norm_i, norm_t, weight, norm_term):
+        return self.w_mse(norm_i, norm_t, weight, norm_term)
+
+    def forward(self, input, target, weight=None):
+        scale_i = self.get_norm(input)
+        scale_t = self.get_norm(target)
+
+        cosine_similarity = self.cos(input, target)
+        cosine_loss = 1 - cosine_similarity
+        if weight is not None:
+            cosine_loss = weight*cosine_loss
+            norm_term = (weight>0).sum()
+            a_loss = cosine_loss.sum()/norm_term
+        else:
+            norm_term = torch.prod(torch.tensor(cosine_loss.size(), dtype=torch.float32))
+            a_loss = cosine_loss.sum()/norm_term
+
+        s_loss = self.scale_loss(scale_i, scale_t, weight, norm_term)
+
+        return self.alpha*a_loss + (1.0-self.alpha)*s_loss
+
 #######################################################
 # 1. Regularization
 #######################################################

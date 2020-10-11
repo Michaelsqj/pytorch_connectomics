@@ -41,21 +41,17 @@ def flux_border_2d(volume, opt=0):
             # indices 2xHxW
             indices = indices * (s == i)
             inda, indb = indices[0], indices[1]
-            temp = np.sqrt((inda - a) ** 2 + (indb - b) ** 2)
-            tempa = np.divide(inda - a, temp, where=temp > 0, out=np.zeros_like(inda, dtype=float))
-            tempb = np.divide(indb - b, temp, where=temp > 0, out=np.zeros_like(indb, dtype=float))
-            dega[d, ...] += (s == i) * tempa
-            degb[d, ...] += (s == i) * tempb
-    if opt == 0:
-        return np.stack([dega, degb], axis=0)
-    else:
-        deg = np.stack([dega, degb], axis=0)
-        direct = np.array([[1, 0], [0.707, 0.707], [0, 1], [-0.707, 0.707],
-                           [-1, 0], [-0.707, -0.707], [0, -1], [0.707, -0.707]])
-        m = np.stack([deg[0] * direct[i][0] for i in range(8)], axis=0)
-        n = np.stack([deg[1] * direct[i][1] for i in range(8)], axis=0)
-        out = (volume > 0) * (np.argmax(m + n, axis=0) + 1)
-        return one_hot(out, bins=9, leave_bg=True)
+            if opt == 0:
+                temp = np.sqrt((inda - a) ** 2 + (indb - b) ** 2)
+                tempa = np.divide(inda - a, temp, where=temp > 0, out=np.zeros_like(inda, dtype=float))
+                tempb = np.divide(indb - b, temp, where=temp > 0, out=np.zeros_like(indb, dtype=float))
+                dega[d, ...] += (s == i) * tempa
+                degb[d, ...] += (s == i) * tempb
+            else:
+                dega[d, ...] += (s == i) * (inda-a)
+                degb[d, ...] += (s == i) * (indb-b)
+    return np.stack([dega, degb], axis=0)
+
 
 def flux_z(volume):
     # 0,1,2
