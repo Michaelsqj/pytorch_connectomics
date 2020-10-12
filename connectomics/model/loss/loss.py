@@ -25,7 +25,7 @@ class JaccardLoss(nn.Module):
             iflat = pred[index].view(-1)
             tflat = target[index].view(-1)
             intersection = (iflat * tflat).sum()
-            loss += 1 - ((intersection + self.smooth) / 
+            loss += 1 - ((intersection + self.smooth) /
                     ( iflat.sum() + tflat.sum() - intersection + self.smooth))
             #print('loss:',intersection, iflat.sum(), tflat.sum())
 
@@ -36,7 +36,7 @@ class JaccardLoss(nn.Module):
         iflat = pred.view(-1)
         tflat = target.view(-1)
         intersection = (iflat * tflat).sum()
-        loss = 1 - ((intersection + self.smooth) / 
+        loss = 1 - ((intersection + self.smooth) /
                ( iflat.sum() + tflat.sum() - intersection + self.smooth))
         #print('loss:',intersection, iflat.sum(), tflat.sum())
         return loss
@@ -47,7 +47,7 @@ class JaccardLoss(nn.Module):
             raise ValueError("Target size ({}) must be the same as pred size ({})".format(target.size(), pred.size()))
         if self.reduce:
             loss = self.jaccard_loss(pred, target)
-        else:    
+        else:
             loss = self.jaccard_loss_batch(pred, target)
         return loss
 
@@ -70,10 +70,10 @@ class DiceLoss(nn.Module):
             tflat = target[index].view(-1)
             intersection = (iflat * tflat).sum()
             if self.power==1:
-                loss += 1 - ((2. * intersection + self.smooth) / 
+                loss += 1 - ((2. * intersection + self.smooth) /
                         ( iflat.sum() + tflat.sum() + self.smooth))
             else:
-                loss += 1 - ((2. * intersection + self.smooth) / 
+                loss += 1 - ((2. * intersection + self.smooth) /
                         ( (iflat**self.power).sum() + (tflat**self.power).sum() + self.smooth))
 
         # size_average=True for the dice loss
@@ -83,12 +83,12 @@ class DiceLoss(nn.Module):
         iflat = pred.view(-1)
         tflat = target.view(-1)
         intersection = (iflat * tflat).sum()
-        
+
         if self.power==1:
-            loss = 1 - ((2. * intersection + self.smooth) / 
+            loss = 1 - ((2. * intersection + self.smooth) /
                    (iflat.sum() + tflat.sum() + self.smooth))
         else:
-            loss = 1 - ((2. * intersection + self.smooth) / 
+            loss = 1 - ((2. * intersection + self.smooth) /
                    ( (iflat**self.power).sum() + (tflat**self.power).sum() + self.smooth))
         return loss
 
@@ -99,7 +99,7 @@ class DiceLoss(nn.Module):
 
         if self.reduce:
             loss = self.dice_loss(pred, target)
-        else:    
+        else:
             loss = self.dice_loss_batch(pred, target)
         return loss
 
@@ -116,12 +116,14 @@ class WeightedMSE(nn.Module):
         norm_term = (s1 * s2).cuda()
         if weight is None:
             return torch.sum((pred - target) ** 2) / norm_term
+        elif torch.sum(weight) == 0:
+            return 0
         else:
-            return torch.sum(weight * (pred - target) ** 2) / norm_term
+            return torch.sum(weight * (pred - target) ** 2) / torch.sum(weight)
 
     def forward(self, pred, target, weight=None):
         #_assert_no_grad(target)
-        return self.weighted_mse_loss(pred, target, weight)  
+        return self.weighted_mse_loss(pred, target, weight)
 
 class WeightedBCE(nn.Module):
     """Weighted binary cross-entropy.
@@ -178,7 +180,7 @@ class BinaryReg(nn.Module):
     def __init__(self, alpha=0.1):
         super().__init__()
         self.alpha = alpha
-    
+
     def forward(self, pred):
         diff = pred - 0.5
         diff = torch.clamp(torch.abs(diff), min=1e-2)
