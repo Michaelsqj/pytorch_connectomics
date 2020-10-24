@@ -201,7 +201,7 @@ def seg_to_targets(label, topts):
         elif topt[0] == '5':  # 2d DT  n bins
             _, bins = [int(x) for x in topt.split('-')]
             out[tid] = dt_2d(label, bins=bins).astype(np.float32)
-        elif topt[0] == '6':  # 2d flux to boundary 1:neighbor
+        elif topt[0] == '6':  # 2d flux to boundary 1:deep flux
             out[tid] = flux_border_2d(label, opt=1).astype(np.float32)
         elif topt[0] == '7':  # z-flux to center 0,1,2 classification
             out[tid] = flux_z(label).astype(np.float32)

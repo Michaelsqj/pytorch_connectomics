@@ -66,7 +66,7 @@ def flux_z(volume):
         center = np.round(center_of_mass((volume == i)))[0]
         temp = (volume == i) * (z - center)
         out += 1 * (temp < 0).astype(np.uint8) + 2 * (temp > 0).astype(np.uint8)
-    out = one_hot(out, 3, leave_bg=True)
+    out = one_hot(out, 3, leave_bg=False)
     return out
 
 

@@ -71,34 +71,37 @@ def writeh5(filename, dtarray, dataset='main'):
         ds[:] = dtarray
     fid.close()
 
-def act_squeeze(vol, topt):
-    def tanh(vol):
-        return (np.exp(vol)-np.exp(-vol))/(np.exp(vol)+np.exp(-vol))
-    def sigmoid(vol):
-        return 1/(1+np.exp(-vol))
-    act = {'0': sigmoid, '1': sigmoid, '2': sigmoid, '3': sigmoid, '4': sigmoid,
-           '5': sigmoid, '6': sigmoid, '7': sigmoid, '8': sigmoid, '9': tanh}
-    sq=['5','7']
-    num_channels_dict = {
-        '0': 1,
-        '1': 3,
-        '2': 3,
-        '3': 1,
-        '4': 1,
-        '5': 10,
-        '6': 8,
-        '7': 2,
-        '8': 1,
-        '9': 2
-    }
-    result=[]
-    num_c=0
+def act(pred, topt):
+    # pred: torch tensor / numpy array
+    is_tensor = (type(pred)==torch.Tensor)
+    act_fn={'0': torch.sigmoid,'1':torch.sigmoid,'2':torch.sigmoid,'3':torch.sigmoid,'4':torch.sigmoid,
+            '5':torch.sigmoid,'6':lambda x: x,'7':torch.sigmoid,'8':torch.sigmoid, '9':torch.tanh}
+    act_fn_np={'0': sigmoid,'1':sigmoid,'2':sigmoid,'3':sigmoid,'4':sigmoid,
+            '5':sigmoid,'6':lambda x: x,'7':sigmoid,'8':sigmoid, '9':tanh}
+    num_channels_dict = {'0': 1, '1': 3, '2': 3, '3': 1, '4': 1, '5': 10, '6': 2, '7': 3, '8': 1, '9': 2}
+    cid = 0
+    for i in range(len(topt)):
+        # for each target
+        numC = num_channels_dict[topt[i]]
+        #  add activation function
+        if is_tensor:
+            pred[:, cid:cid+numC] = act_fn[topt[i]](pred[:, cid:cid+numC])
+        else:
+            pred[:, cid:cid+numC] = act_fn_np[topt[i]](pred[:, cid:cid+numC])
+    return pred
+
+def squeeze(pred, topt):
+    # pred: numpy array
+    cid=0
+    pred_channels = {'0': 1, '1': 3, '2': 3, '3': 1, '4': 1, '5': 10, '6': 2, '7': 3, '8': 1, '9': 2}
+    out_channels = {'0': 1, '1': 3, '2': 3, '3': 1, '4': 1, '5': 1, '6': 2, '7': 1, '8': 1, '9': 2}
     for t in topt:
-        v=act[t](vol[:,num_c:num_c+num_channels_dict[t]])
-        if t in sq:
-            v=np.squeeze(v,axis=1)
+        numC=pred_channels[topt[i]]
+        v = pred[:, cid: cid+numC]
+        if pred_channels[topt[i]]>out_channels[topt[i]]:
+            v=np.argmax(v, axis=1)
             result.append(np.expand_dims(v, axis=1))
-        num_c+=num_channels_dict[t]
+        cid+=numC[t]
     return np.concatenate(result, axis=1)
 
 ####################################################################

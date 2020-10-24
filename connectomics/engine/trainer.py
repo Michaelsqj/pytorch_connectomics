@@ -11,7 +11,7 @@ from .solver import *
 from connectomics.model import *
 from connectomics.data.augmentation import build_train_augmentor, TestAugmentor
 from connectomics.data.dataset import build_dataloader, get_dataset
-from connectomics.data.utils import build_blending_matrix, writeh5, act_squeeze
+from connectomics.data.utils import build_blending_matrix, writeh5, act, squeeze
 
 class Trainer(object):
     r"""Trainer
@@ -76,6 +76,9 @@ class Trainer(object):
             volume = torch.from_numpy(volume).to(self.device, dtype=torch.float)
             pred = self.model(volume)
            
+            # activation before computing loss
+            pred = act(pred, self.cfg.MODEL.TARGET_OPT)
+
             loss = self.criterion.eval(pred, target, weight)
 
             # compute gradient
@@ -155,6 +158,10 @@ class Trainer(object):
 
                 # forward pass
                 output = test_augmentor(self.model, volume)
+
+                # activate after model
+                output = act(output, self.cfg.MODEL.TARGET_OPT)
+
                 # select channel, self.cfg.INFERENCE.MODEL_OUTPUT_ID is a list [None]
                 if self.cfg.INFERENCE.MODEL_OUTPUT_ID[0] is not None: 
                     ndim = output.ndim
@@ -195,7 +202,9 @@ class Trainer(object):
                         pad_size[2]:sz[2]-pad_size[3],
                         pad_size[4]:sz[3]-pad_size[5]]
 
-        result = act_squeeze(result, self.cfg.MODEL.TARGET_OPT)
+        # squeeze multi-channel prediction
+        result = squeeze(result, self.cfg.MODEL.TARGET_OPT)
+
         if self.output_dir is None:
             return result
         else:
