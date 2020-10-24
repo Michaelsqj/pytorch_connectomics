@@ -79,7 +79,7 @@ class Trainer(object):
             # activation before computing loss
             pred = act(pred, self.cfg.MODEL.TARGET_OPT)
 
-            loss = self.criterion.eval(pred, target, weight)
+            loss, losses = self.criterion.eval(pred, target, weight, True)
 
             # compute gradient
             loss.backward()
@@ -88,7 +88,7 @@ class Trainer(object):
                 self.optimizer.zero_grad()
 
             # logging and update record
-            do_vis = self.monitor.update(self.lr_scheduler, iter_total, loss, self.optimizer.param_groups[0]['lr']) 
+            do_vis = self.monitor.update(self.lr_scheduler, iter_total, loss, self.optimizer.param_groups[0]['lr'], losses) 
             if do_vis:
                 self.monitor.visualize(self.cfg, volume, target, pred, iter_total)
                 # Display GPU stats using the GPUtil package.

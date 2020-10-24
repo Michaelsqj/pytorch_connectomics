@@ -117,7 +117,7 @@ class WeightedMSE(nn.Module):
         if weight is None:
             return torch.sum((pred - target) ** 2) / norm_term
         elif torch.sum(weight) == 0:
-            return 0
+            return torch.tensor(0).cuda()
         else:
             return torch.sum(weight * (pred - target) ** 2) / torch.sum(weight)
 
